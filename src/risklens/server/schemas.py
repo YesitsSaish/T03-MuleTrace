@@ -1,7 +1,9 @@
 """Pydantic V2 request & response schemas for RiskLens API."""
 
 from __future__ import annotations
-from typing import Any, List, Optional
+
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -37,7 +39,7 @@ class AccountRiskSummary(BaseModel):
     risk_band: str
     rank: int
     decision: str
-    violations: List[RuleViolationItem] = []
+    violations: list[RuleViolationItem] = []
     degree: int = 0
     in_degree: int = 0
     out_degree: int = 0
@@ -46,7 +48,7 @@ class AccountRiskSummary(BaseModel):
 
 
 class BatchRiskRequest(BaseModel):
-    account_ids: List[str]
+    account_ids: list[str]
 
 
 class SubgraphNode(BaseModel):
@@ -65,14 +67,14 @@ class SubgraphEdge(BaseModel):
     src: str
     dst: str
     amount: float
-    risk_score: Optional[float] = None
+    risk_score: float | None = None
     is_internal_ring: bool = False
 
 
 class SubgraphResponse(BaseModel):
     center_node: str
-    nodes: List[SubgraphNode]
-    edges: List[SubgraphEdge]
+    nodes: list[SubgraphNode]
+    edges: list[SubgraphEdge]
     ring_id: int
 
 
