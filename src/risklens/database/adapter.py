@@ -12,19 +12,18 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-import sqlalchemy
-from sqlalchemy import create_engine, text
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 import torch
+from sqlalchemy import create_engine, text
 from torch_geometric.data import Data
 
 
 class DatabaseAdapter:
     """Enterprise database adapter supporting Postgres, Supabase, and SQLite."""
 
-    def __init__(self, connection_string: Optional[str] = None):
+    def __init__(self, connection_string: str | None = None):
         # Default to SQLite file if SUPABASE_DB_URL or DATABASE_URL not supplied
         if not connection_string:
             connection_string = os.environ.get("SUPABASE_DB_URL") or os.environ.get(

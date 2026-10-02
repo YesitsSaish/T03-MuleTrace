@@ -9,13 +9,14 @@ Unified entry point for:
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import sys
+from pathlib import Path
+
 import uvicorn
 
 from risklens import __version__
-from risklens.server.api import create_risklens_app
 from risklens.database.adapter import DatabaseAdapter
+from risklens.server.api import create_risklens_app
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -66,11 +67,11 @@ def main(argv: list[str] | None = None) -> int:
             dataset_path=graph_path,
             db_adapter=db,
         )
-        print(f"\n=======================================================")
+        print("\n=======================================================")
         print(f" RiskLens Fraud Intelligence Platform v{__version__}  ")
         print(f" Terminal Dashboard: http://{args.host}:{args.port}/ ")
         print(f" Database Backend:   {'SQLite' if db.is_sqlite else 'PostgreSQL/Supabase'}")
-        print(f"=======================================================\n")
+        print("=======================================================\n")
         uvicorn.run(app, host=args.host, port=args.port, log_level="info")
         return 0
 
