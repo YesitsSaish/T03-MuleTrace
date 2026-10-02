@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🔍 RiskLens — Enterprise Graph & Heuristic Fraud Intelligence
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
@@ -141,3 +142,7 @@ Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
 | `/api/graph/subgraph/{id}` | `GET` | Topological sub-graph payload for network rendering with ring edge flags. |
 | `/api/sensitivity` | `GET/POST`| Live dynamic adjustment of GNN weight $\alpha$ and threshold cutoffs. |
 | `/api/transactions/ingest` | `POST` | Live ingestion of streaming transfers directly into relational storage. |
+=======
+# SnackOverFlow-MuleTrace
+MuleTrace uses Graph Neural Networks to detect coordinated fraud rings in UPI payment networks. It ships a full pipeline—synthetic graph generation, GNN training, baseline comparison, and adversarial testing. A FastAPI dashboard and MCP server let analysts and AI agents investigate flagged accounts in real time.
+>>>>>>> 1e3cf7d91fb84a860c7683acfcf9e35d629a07cf
