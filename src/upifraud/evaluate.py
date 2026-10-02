@@ -1,0 +1,123 @@
+"""Ring-recovery evaluation: the metric that matters for fraud-ring detection."""
+
+from __future__ import annotations
+
+import numpy as np
+from sklearn.metrics import average_precision_score, brier_score_loss, roc_auc_score
+from torch_geometric.data import Data
+
+
+def ring_recovery(
+    data: Data,
+    scores: np.ndarray,
+    top_k: int | None = None,
+    split: str = "test",
+) -> dict:
+    """For each planted ring, measure how many members appear among the top-K
+    predicted-fraud accounts. High ring recall means the model catches whole
+    rings, not just scattered accounts.
+    """
+    mask = getattr(data, f"{split}_mask").numpy()
+    n_nodes = data.num_nodes
+    order = np.argsort(-scores)
+    ranked = order[order < n_nodes]
+
+    if top_k is None:
+        top_k = int(mask.sum())
+
+    ring_members: dict[int, list[int]] = {}
+    for i in range(n_nodes):
+        r = int(data.ring_id[i])
+        if r >= 0 and mask[i]:
+            ring_members.setdefault(r, []).append(i)
+
+    per_ring = []
+    for r, members in ring_members.items():
+        in_top = sum(1 for m in members if np.where(ranked == m)[0][0] < top_k)
+        per_ring.append(
+            {
+                "ring_id": r,
+                "size": len(members),
+                "recovered": in_top,
+                "recall": in_top / len(members),
+            }
+        )
+
+    test_fraud = np.where(mask & (data.y.numpy() == 1))[0]
+    fraud_in_top = sum(1 for m in test_fraud if np.where(ranked == m)[0][0] < top_k)
+
+    return {
+        "top_k": top_k,
+        "n_rings": len(per_ring),
+        "mean_ring_recall": float(np.mean([p["recall"] for p in per_ring])) if per_ring else 0.0,
+        "fraud_hit_rate_at_k": fraud_in_top / max(len(test_fraud), 1),
+        "per_ring": per_ring,
+    }
+
+
+def operating_point(data: Data, scores: np.ndarray, split: str = "test") -> dict:
+    """F1-maximizing operating threshold with the precision/recall achieved
+    there. AUC summarizes the whole curve, but an investigator must deploy
+    with one threshold; precision/recall at the best-F1 point on held-out
+    rings is the honest deployment-relevant number.
+    """
+    mask = getattr(data, f"{split}_mask").numpy()
+    y = data.y.numpy()[mask]
+    s = scores[mask]
+    order = np.argsort(-s)
+    y_sorted = y[order]
+    tp = np.cumsum(y_sorted)
+    fp = np.cumsum(1 - y_sorted)
+    recall = tp / max(int(tp[-1]), 1)
+    denom = tp + fp
+    precision = np.divide(tp, denom, out=np.zeros_like(tp, dtype=float), where=denom > 0)
+    f1 = np.divide(
+        2 * precision * recall,
+        precision + recall,
+        out=np.zeros_like(tp, dtype=float),
+        where=(precision + recall) > 0,
+    )
+    best = int(np.argmax(f1))
+    return {
+        "threshold": float(s[order[best]]),
+        "precision": float(precision[best]),
+        "recall": float(recall[best]),
+        "f1": float(f1[best]),
+        "n_fraud_detected": int(tp[best]),
+        "n_flagged": int(tp[best] + fp[best]),
+    }
+
+
+def top_fraud_accounts(data: Data, scores: np.ndarray, k: int = 20) -> list[dict]:
+    order = np.argsort(-scores)[:k]
+    out = []
+    for i in order:
+        out.append(
+            {
+                "rank": len(out) + 1,
+                "account_id": data.node_ids[i],
+                "risk_score": round(float(scores[i]), 4),
+                "ring_id": int(data.ring_id[i]),
+                "true_label": int(data.y[i]),
+            }
+        )
+    return out
+
+
+def evaluate_edges(data: Data, edge_scores: np.ndarray, split: str = "test") -> dict:
+    """AUC/AP/brier over held-out transactions (the edge-level counterpart of
+    the node evaluation). Uses the edge_<split> masks derived from endpoints.
+    """
+    mask = getattr(data, f"edge_{split}").numpy()
+    y = data.edge_label.numpy()[mask]
+    s = edge_scores[mask]
+    n_pos = int(y.sum())
+    out = {"n_pos": n_pos, "n_total": len(y)}
+    if len(y) == 0 or n_pos == 0 or n_pos == len(y):
+        return {**out, "auc": None, "ap": None, "brier": None}
+    return {
+        **out,
+        "auc": float(roc_auc_score(y, s)),
+        "ap": float(average_precision_score(y, s)),
+        "brier": float(brier_score_loss(y, s)),
+    }
