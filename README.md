@@ -1,148 +1,278 @@
-<<<<<<< HEAD
-# 🔍 RiskLens — Enterprise Graph & Heuristic Fraud Intelligence
+# MuleTrace – Project Documentation  
 
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.11+-emerald.svg)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-059669.svg)](https://fastapi.tiangolo.com)
-[![PyTorch Geometric](https://img.shields.io/badge/PyG-2.5+-ee4c2c.svg)](https://pyg.org)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-336791.svg)](https://supabase.com)
+> **MuleTrace** (formerly *Mule‑Hunt*) is an open‑source, graph‑neural‑network (GNN) based fraud‑detection system for UPI‑style payment networks. It ships a full end‑to‑end pipeline: synthetic data generation, model training, evaluation, a FastAPI risk‑service with an interactive dashboard, and a native MCP (multi‑agent) investigation server for AI‑assisted queries.
 
-**RiskLens** is a production-grade fraud and money-laundering (AML) risk-intelligence platform built for high-throughput financial transaction graphs. By combining deep multi-hop **Graph Neural Networks (GraphSAGE / GATv2)** with a deterministic **Heuristic Rule Engine**, RiskLens identifies coordinated mule rings, circular routing cycles, and rapid pass-through layering in real time.
+---  
 
----
+## 1. Project Overview  
 
-## 🏛️ System Architecture
+- **Goal** – Detect coordinated fraud rings (“mules”) in payment graphs with a data‑driven GNN model and give analysts an intuitive UI to explore risk scores.  
+- **Scope** – Whole pipeline from raw CSV transaction logs to a live REST service, plus a language‑model‑driven investigation assistant (MCP).  
+- **Status** – Production‑ready prototype (Python 3.11+, supports CPU/GPU training). The repository has been renamed to **MuleTrace** while preserving all original functionality.  
+
+---  
+
+## 2. Setup & Installation Instructions  
+
+| Step | Command (PowerShell) | What it does |
+|------|----------------------|--------------|
+| **1️⃣ Clone the repo** | `git clone https://github.com/YesitsSaish/SnackOverFlow-MuleTrace.git` | Creates `c:\Codes\Mule-Hunt-main` (your current working folder). |
+| **2️⃣ Create a virtual environment** | `python -m venv .venv` | Isolates dependencies. |
+| **3️⃣ Activate the env** | `.venv\Scripts\Activate.ps1` | Switches your shell to the env. |
+| **4️⃣ Install the package (editable)** | `uv pip install -e .` | Installs `mule-hunt` as an editable package. |
+| **5️⃣ Install dev tools** | `.venv\Scripts\pip install ruff pytest` | Linting (`ruff`) and testing (`pytest`). |
+| **6️⃣ Verify install** | `.venv\Scripts\upifraud --help` | Should display the CLI help menu. |
+| **7️⃣ Run a quick demo** | `make demo` | Generates a synthetic graph, trains a default GCN, and starts the FastAPI dashboard. |
+
+> **Tip:** Keep the virtual environment active while running any further commands.
+
+---  
+
+## 3. Key Features  
+
+- **Synthetic graph generator** – Burst‑style transaction graphs with configurable rings (`src/upifraud/generate.py`).  
+- **Dataset builder** – Converts CSV logs into PyG `Data` objects with ring‑aware temporal splits.  
+- **Rich feature extraction** – Structural, amount‑based, temporal, and cycle‑based node/edge attributes.  
+- **Multiple GNN back‑ends** – GCN, GraphSAGE, GATv2 (with Jumping Knowledge, edge heads).  
+- **Training loop with calibration** – Supports cold‑start fallback, edge‑level loss, early stopping.  
+- **Evaluation suite** – AUC, AP, Brier score, ring‑recovery, F1 at operating point.  
+- **CLI** – Unified entry point (`upifraud`) for generation, training, evaluation, and service orchestration.  
+- **FastAPI risk service** – HTTP endpoints + static HTML/JS dashboard (`src/upifraud/api.py`).  
+- **MCP investigation server** – Std‑IO based AI agent interface for natural‑language graph queries (`src/upifraud/mcp_server.py`).  
+- **Extensible lint & test pipeline** – `ruff` (100‑char line limit) + `pytest`.  
+
+---  
+
+## 4. Technology Stack  
+
+| Layer | Technology | Reason |
+|-------|------------|--------|
+| **Language** | Python ≥ 3.11 | Mature ML & web ecosystem. |
+| **Graph Library** | PyTorch Geometric (PyG) | Efficient GNN primitives & data handling. |
+| **Web Framework** | FastAPI | Async‑first, auto‑generated OpenAPI docs, high performance. |
+| **CLI** | `argparse` (standard) | No extra deps; easy to extend. |
+| **Packaging** | `uv` + `pyproject.toml` | Fast modern build system; editable install support. |
+| **Testing** | `pytest` | Powerful fixture system. |
+| **Linting** | `ruff` | Very fast, PEP‑8 + custom style enforcement. |
+| **MCP** | Custom std‑io server | Enables Antigravity‑style AI agents to query the graph. |
+| **Dashboard** | Vanilla HTML/JS (`frontend/`) | Zero‑framework, served directly by FastAPI. |
+| **Deployment** | `uvicorn` | ASGI server for FastAPI. |
+
+---  
+
+## 5. Architecture / Workflow  
 
 ```mermaid
-flowchart LR
-    subgraph Data Layer [Data Layer & Ingestion]
-        PG[(PostgreSQL / Supabase)]
-        ING[Live Streaming Ingest /api/transactions/ingest] --> PG
-        PG --> ADAPT[Database Adapter]
-    end
-
-    subgraph Analytics [RiskLens Hybrid Engine]
-        ADAPT --> PYG[PyTorch Geometric Graph Engine]
-        PYG --> GNN[GNN Topology Head GraphSAGE + JK]
-        PYG --> HEUR[Heuristic Rule Engine Velocity, Layering, Smurfing]
-        GNN --> FUSION[Dynamic Sensitivity Fusion α·GNN + 1-α·Rules]
-        HEUR --> FUSION
-    end
-
-    subgraph Presentation [Command Center UI]
-        FUSION --> API[FastAPI Server Layer]
-        API --> UI[Investigator Workspace Canvas + Inspector Panel]
-    end
+graph TD
+    A[Data Source (CSV)] --> B[Dataset Builder<br/>src/upifraud/dataset.py]
+    B --> C[Graph Generator<br/>src/upifraud/generate.py]
+    C --> D[Feature Builder<br/>src/upifraud/features.py]
+    D --> E[Model Trainer<br/>src/upifraud/train.py]
+    E --> F[Evaluation<br/>src/upifraud/evaluate.py]
+    E --> G[FastAPI Service<br/>src/upifraud/api.py]
+    G --> H[Dashboard (frontend/)]
+    G --> I[MCP Server<br/>src/upifraud/mcp_server.py]
+    I --> J[Antigravity Agent]
+    style A fill:#f9f9f9,stroke:#333,stroke-width:2px
+    style H fill:#e0f7fa,stroke:#00796b,stroke-width:2px
 ```
 
----
+**Typical pipeline**
 
-## 🚀 Key Differentiators & Features
+1. **Ingest** – CSV → PyG `Data` (ring‑aware temporal splits).  
+2. **Generate** – Optionally synthesize bursts for testing.  
+3. **Extract** – Compute structural & temporal features.  
+4. **Train** – Choose GNN architecture, calibrate, early‑stop.  
+5. **Evaluate** – Metric suite prints & logs scores.  
+6. **Deploy** – `uvicorn src/upifraud/api:app` serves REST endpoints & static dashboard.  
+7. **Investigate** – Launch MCP server; AI agents (e.g., Antigravity) can query the graph and produce human‑readable reports.  
 
-1. **Hybrid Scoring Engine ($\alpha$-Tunable Sensitivity)**:
-   - Evaluates risk as $S_{\text{composite}} = \alpha \cdot S_{\text{GNN}} + (1 - \alpha) \cdot S_{\text{Heuristic}}$.
-   - Hackathon judges and compliance officers can adjust the sensitivity slider directly from the UI in real time to shift weight between algorithmic graph patterns and explicit banking rule triggers.
-2. **Relational Database Adapter (Supabase / PostgreSQL)**:
-   - Replaces static file-bound datasets with a live relational schema (`accounts`, `transactions`, `fraud_cases`, and `risk_assessments`).
-   - Dynamic schema generation with SQLite fallback for seamless local demos.
-3. **Investigator Command Center UI**:
-   - High-contrast, human-crafted dark mode (`#09090b` obsidian background, `#27272a` zinc borders, amber `#f59e0b` warnings, and emerald `#10b981` safe indicators).
-   - Monospace typography (`JetBrains Mono` / `Fira Code`) paired with clean `Inter` UI text for an authentic intelligence console.
-   - Split-pane layout: Interactive radial ego-network canvas on the left, and a dense forensic inspector dossier on the right.
-4. **Heuristic Rule Engine**:
-   - **RULE-LAYER-01**: Pass-through mule layering (rapid inflow/outflow balance within 15% parity).
-   - **RULE-VEL-02**: Fan-out burst velocity detection.
-   - **RULE-NEIGHBOR-03**: Neighborhood infection / guilt-by-association clustering.
-   - **RULE-STRUCT-04**: Smurfing / structuring under regulatory thresholds.
-   - **RULE-GEO-05**: Impossible velocity geographic locale shifts.
+---  
 
----
+## 6. Dataset / API Information  
 
-## 💾 Relational Database Schema
+### Dataset  
 
-```sql
--- Core Accounts
-CREATE TABLE accounts (
-    account_id VARCHAR(64) PRIMARY KEY,
-    customer_name VARCHAR(128) NOT NULL,
-    account_type VARCHAR(32) DEFAULT 'INDIVIDUAL',
-    kyc_status VARCHAR(32) DEFAULT 'VERIFIED',
-    initial_balance NUMERIC(14, 2) DEFAULT 0.00,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    country_code VARCHAR(8) DEFAULT 'IN',
-    is_seed_fraud BOOLEAN DEFAULT FALSE,
-    ring_id INTEGER DEFAULT -1
-);
+- **Format** – CSV with columns `src_id`, `dst_id`, `timestamp`, `amount` (optional).  
+- **Loading** – `load_graph(data_dir: pathlib.Path) → Data`. The loader expects a `Path`; passing a plain string raises an error (see `AGENTS.md`).  
+- **Splits** – Ring‑aware temporal splits simulate realistic burst patterns (train/val/test).  
 
--- Core Transactions
-CREATE TABLE transactions (
-    tx_id VARCHAR(64) PRIMARY KEY,
-    src_account_id VARCHAR(64) REFERENCES accounts(account_id),
-    dst_account_id VARCHAR(64) REFERENCES accounts(account_id),
-    amount NUMERIC(14, 2) NOT NULL,
-    currency VARCHAR(8) DEFAULT 'INR',
-    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    channel VARCHAR(32) DEFAULT 'UPI',
-    geo_location VARCHAR(64),
-    is_flagged_fraud BOOLEAN DEFAULT FALSE
-);
+### FastAPI Endpoints (excerpt)  
 
--- Real-Time Risk Ledger
-CREATE TABLE risk_assessments (
-    assessment_id SERIAL PRIMARY KEY,
-    account_id VARCHAR(64) REFERENCES accounts(account_id),
-    assessed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    composite_risk_score NUMERIC(5, 4) NOT NULL,
-    gnn_score NUMERIC(5, 4) NOT NULL,
-    heuristic_score NUMERIC(5, 4) NOT NULL,
-    risk_band VARCHAR(16) NOT NULL,
-    decision VARCHAR(32) NOT NULL,
-    violations_json TEXT,
-    sensitivity_alpha NUMERIC(4, 2) DEFAULT 0.65
-);
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET /risk/account/{account_id}` | Returns a `RiskResponse` (score, band, rank). |
+| `GET /api/summary` | High‑level stats (accounts, transactions, fraud rate, ring sizes, model version). |
+| `GET /api/top?k=50` | Top‑k risky accounts with risk band & degree. |
+| `GET /api/ring/{ring_id}` | Detailed ring view (nodes, edges, external connections, top risky transactions). |
+| `GET /api/distribution?bins=20` | Histogram of risk scores (bins & counts). |
+| `GET /api/explain/{account_id}` | Model‑grounded explanation (local GNNExplainer or OpenAI‑generated). |
+| `POST /api/ask` | Natural‑language query → AI‑generated answer. |
+| `GET /api/counterfactual/{account_id}?k=3` | Sens# MuleTrace – Project Documentation  
+
+> **MuleTrace** (formerly *Mule‑Hunt*) is an open‑source, graph‑neural‑network (GNN) based fraud‑detection system for UPI‑style payment networks. It ships a full end‑to‑end pipeline: synthetic data generation, model training, evaluation, a FastAPI risk‑service with an interactive dashboard, and a native MCP (multi‑agent) investigation server for AI‑assisted queries.
+
+---  
+
+## 1. Project Overview  
+
+- **Goal** – Detect coordinated fraud rings (“mules”) in payment graphs with a data‑driven GNN model and give analysts an intuitive UI to explore risk scores.  
+- **Scope** – Whole pipeline from raw CSV transaction logs to a live REST service, plus a language‑model‑driven investigation assistant (MCP).  
+- **Status** – Production‑ready prototype (Python 3.11+, supports CPU/GPU training). The repository has been renamed to **MuleTrace** while preserving all original functionality.  
+
+---  
+
+## 2. Setup & Installation Instructions  
+
+| Step | Command (PowerShell) | What it does |
+|------|----------------------|--------------|
+| **1️⃣ Clone the repo** | `git clone https://github.com/YesitsSaish/SnackOverFlow-MuleTrace.git` | Creates `c:\Codes\Mule-Hunt-main` (your current working folder). |
+| **2️⃣ Create a virtual environment** | `python -m venv .venv` | Isolates dependencies. |
+| **3️⃣ Activate the env** | `.venv\Scripts\Activate.ps1` | Switches your shell to the env. |
+| **4️⃣ Install the package (editable)** | `uv pip install -e .` | Installs `mule-hunt` as an editable package. |
+| **5️⃣ Install dev tools** | `.venv\Scripts\pip install ruff pytest` | Linting (`ruff`) and testing (`pytest`). |
+| **6️⃣ Verify install** | `.venv\Scripts\upifraud --help` | Should display the CLI help menu. |
+| **7️⃣ Run a quick demo** | `make demo` | Generates a synthetic graph, trains a default GCN, and starts the FastAPI dashboard. |
+
+> **Tip:** Keep the virtual environment active while running any further commands.
+
+---  
+
+## 3. Key Features  
+
+- **Synthetic graph generator** – Burst‑style transaction graphs with configurable rings (`src/upifraud/generate.py`).  
+- **Dataset builder** – Converts CSV logs into PyG `Data` objects with ring‑aware temporal splits.  
+- **Rich feature extraction** – Structural, amount‑based, temporal, and cycle‑based node/edge attributes.  
+- **Multiple GNN back‑ends** – GCN, GraphSAGE, GATv2 (with Jumping Knowledge, edge heads).  
+- **Training loop with calibration** – Supports cold‑start fallback, edge‑level loss, early stopping.  
+- **Evaluation suite** – AUC, AP, Brier score, ring‑recovery, F1 at operating point.  
+- **CLI** – Unified entry point (`upifraud`) for generation, training, evaluation, and service orchestration.  
+- **FastAPI risk service** – HTTP endpoints + static HTML/JS dashboard (`src/upifraud/api.py`).  
+- **MCP investigation server** – Std‑IO based AI agent interface for natural‑language graph queries (`src/upifraud/mcp_server.py`).  
+- **Extensible lint & test pipeline** – `ruff` (100‑char line limit) + `pytest`.  
+
+---  
+
+## 4. Technology Stack  
+
+| Layer | Technology | Reason |
+|-------|------------|--------|
+| **Language** | Python ≥ 3.11 | Mature ML & web ecosystem. |
+| **Graph Library** | PyTorch Geometric (PyG) | Efficient GNN primitives & data handling. |
+| **Web Framework** | FastAPI | Async‑first, auto‑generated OpenAPI docs, high performance. |
+| **CLI** | `argparse` (standard) | No extra deps; easy to extend. |
+| **Packaging** | `uv` + `pyproject.toml` | Fast modern build system; editable install support. |
+| **Testing** | `pytest` | Powerful fixture system. |
+| **Linting** | `ruff` | Very fast, PEP‑8 + custom style enforcement. |
+| **MCP** | Custom std‑io server | Enables Antigravity‑style AI agents to query the graph. |
+| **Dashboard** | Vanilla HTML/JS (`frontend/`) | Zero‑framework, served directly by FastAPI. |
+| **Deployment** | `uvicorn` | ASGI server for FastAPI. |
+
+---  
+
+## 5. Architecture / Workflow  
+
+```mermaid
+graph TD
+    A[Data Source (CSV)] --> B[Dataset Builder<br/>src/upifraud/dataset.py]
+    B --> C[Graph Generator<br/>src/upifraud/generate.py]
+    C --> D[Feature Builder<br/>src/upifraud/features.py]
+    D --> E[Model Trainer<br/>src/upifraud/train.py]
+    E --> F[Evaluation<br/>src/upifraud/evaluate.py]
+    E --> G[FastAPI Service<br/>src/upifraud/api.py]
+    G --> H[Dashboard (frontend/)]
+    G --> I[MCP Server<br/>src/upifraud/mcp_server.py]
+    I --> J[Antigravity Agent]
+    style A fill:#f9f9f9,stroke:#333,stroke-width:2px
+    style H fill:#e0f7fa,stroke:#00796b,stroke-width:2px
 ```
 
----
+**Typical pipeline**
 
-## ⚡ Quickstart
+1. **Ingest** – CSV → PyG `Data` (ring‑aware temporal splits).  
+2. **Generate** – Optionally synthesize bursts for testing.  
+3. **Extract** – Compute structural & temporal features.  
+4. **Train** – Choose GNN architecture, calibrate, early‑stop.  
+5. **Evaluate** – Metric suite prints & logs scores.  
+6. **Deploy** – `uvicorn src/upifraud/api:app` serves REST endpoints & static dashboard.  
+7. **Investigate** – Launch MCP server; AI agents (e.g., Antigravity) can query the graph and produce human‑readable reports.  
 
-### 1. Installation
-```bash
-pip install -e .
+---  
+
+## 6. Dataset / API Information  
+
+### Dataset  
+
+- **Format** – CSV with columns `src_id`, `dst_id`, `timestamp`, `amount` (optional).  
+- **Loading** – `load_graph(data_dir: pathlib.Path) → Data`. The loader expects a `Path`; passing a plain string raises an error (see `AGENTS.md`).  
+- **Splits** – Ring‑aware temporal splits simulate realistic burst patterns (train/val/test).  
+
+### FastAPI Endpoints (excerpt)  
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET /risk/account/{account_id}` | Returns a `RiskResponse` (score, band, rank). |
+| `GET /api/summary` | High‑level stats (accounts, transactions, fraud rate, ring sizes, model version). |
+| `GET /api/top?k=50` | Top‑k risky accounts with risk band & degree. |
+| `GET /api/ring/{ring_id}` | Detailed ring view (nodes, edges, external connections, top risky transactions). |
+| `GET /api/distribution?bins=20` | Histogram of risk scores (bins & counts). |
+| `GET /api/explain/{account_id}` | Model‑grounded explanation (local GNNExplainer or OpenAI‑generated). |
+| `POST /api/ask` | Natural‑language query → AI‑generated answer. |
+| `GET /api/counterfactual/{account_id}?k=3` | Sensitivity analysis after dropping top‑k edges. |
+| `GET /api/case/{account_id}` | Deterministic case file (markdown) for reporting. |
+| `GET /` (static) | Serves the HTML/JS dashboard (`frontend/`). |
+| `GET /docs` | Swagger UI (auto‑generated). |
+
+All endpoints are documented automatically at `http://localhost:8000/docs`.
+
+---  
+
+## 7. Screenshots / Demo Information  
+
+Because the repo cannot embed external images directly, you can generate a live demo with the built‑in `make demo` target:
+
+```powershell
+make demo
 ```
 
-### 2. Environment Configuration (Optional)
-To connect to a live Supabase or PostgreSQL instance, export:
-```bash
-export SUPABASE_DB_URL="postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres"
-```
-*(If omitted, RiskLens defaults to local persistence via SQLite).*
+The demo will:
 
-### 3. Initialize Relational Schema
-```bash
-python -m risklens.cli init-db --models-dir models
-```
+1. Spin up a synthetic graph.  
+2. Train a default GCN model.  
+3. Launch the FastAPI service on `http://localhost:8000`.  
+4. Open the dashboard in your default browser, showing:  
 
-### 4. Launch the Command Center
-```bash
-python -m risklens.cli serve --models-dir models --host 127.0.0.1 --port 8000
-```
-Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
+   - **Node risk heatmap** (color‑coded circles).  
+   - **Edge thickness** proportional to transaction amount.  
+   - **Real‑time model performance charts** (AUC, Brier score).  
 
----
+Take screenshots of the dashboard for documentation or presentations.  
 
-## 📡 REST API Reference
+---  
 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/healthz` | `GET` | Health status, model metadata, and connected DB backend. |
-| `/api/summary` | `GET` | High-level graph statistics, positive fraud ratios, and detected ring counts. |
-| `/api/top?k=50` | `GET` | High-risk investigation queue sorted by hybrid composite score. |
-| `/api/account/{id}` | `GET` | Complete inspector dossier, degree metrics, and triggered heuristic violations. |
-| `/api/graph/subgraph/{id}` | `GET` | Topological sub-graph payload for network rendering with ring edge flags. |
-| `/api/sensitivity` | `GET/POST`| Live dynamic adjustment of GNN weight $\alpha$ and threshold cutoffs. |
-| `/api/transactions/ingest` | `POST` | Live ingestion of streaming transfers directly into relational storage. |
-=======
-# SnackOverFlow-MuleTrace
-MuleTrace uses Graph Neural Networks to detect coordinated fraud rings in UPI payment networks. It ships a full pipeline—synthetic graph generation, GNN training, baseline comparison, and adversarial testing. A FastAPI dashboard and MCP server let analysts and AI agents investigate flagged accounts in real time.
->>>>>>> 1e3cf7d91fb84a860c7683acfcf9e35d629a07cf
+## 8. Limitations & Future Scope  
+
+| Limitation | Current Impact | Potential Future Work |
+|------------|----------------|-----------------------|
+| **Static dataset format** | Only CSV ingestion; no streaming. | Add Parquet/JSONL support and real‑time ingestion pipelines (e.g., Pub/Sub). |
+| **Single‑GPU training** | Training limited to one GPU/CPU. | Distributed training via `torch.distributed` or Ray. |
+| **Vanilla HTML/JS dashboard** | Lacks advanced UI components (filters, export). | Migrate to a modern front‑end framework (React/Vite) for richer interactivity. |
+| **Model catalog limited** | Only GCN, GraphSAGE, GATv2. | Incorporate newer GNN architectures (Graphormer, Transformer‑based GNNs). |
+| **MCP server is stdio‑based** | Requires a terminal; no REST/GRPC integration. | Expose MCP via gRPC or HTTP for cloud‑based agents. |
+| **No CI/CD pipeline** | Manual `make demo` & `pytest` runs. | Add GitHub Actions for lint, test, and auto‑publish to PyPI. |
+| **No privacy safeguards** | Raw transaction data stored in plain CSV. | Implement differential privacy, encryption at rest, and secure data handling. |
+
+---  
+
+## 9. Team Members  
+
+- **Saish Satose** – Project lead, architecture, core GNN pipelines.  
+- **Hardik Dandekar** – FastAPI service, dashboard, MCP server.  
+- **Shivraj Thorat** – Dataset generation, feature engineering, evaluation suite.  
+- **Shubham Makwana** – CI/CD, documentation, testing infrastructure.  
+
+---  
+
+
+
+Feel free to copy‑paste any of the above sections into a new `README.md` or documentation site. Let me know if you need further customization (e.g., adding a CI workflow, Dockerfile, or more detailed API docs).
