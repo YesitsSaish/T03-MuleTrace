@@ -10,6 +10,7 @@ import httpx
 import numpy as np
 import torch
 from fastapi import FastAPI, HTTPException
+from .auth import router as auth_router
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from torch_geometric.data import Data
@@ -128,6 +129,7 @@ def create_app(
     degree = np.bincount(np.concatenate([src, dst]), minlength=data.num_nodes)
 
     app = FastAPI(title="Mule-Hunt Risk API", version="0.3.0")
+    app.include_router(auth_router)
 
     @app.get("/healthz")
     def healthz() -> dict:

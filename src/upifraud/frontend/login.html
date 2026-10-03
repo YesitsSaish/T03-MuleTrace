@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mule‑Hunt Login</title>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: linear-gradient(135deg, #1e1e2f, #2a2a3b);
+      color: #fff;
+    }
+    .login-card {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2rem;
+      border-radius: 12px;
+      backdrop-filter: blur(8px);
+      width: 320px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    h2 { text-align: center; margin-bottom: 1.5rem; }
+    label { display: block; margin-top: 1rem; }
+    input {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.3rem;
+      border: none;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+    button {
+      width: 100%;
+      margin-top: 1.5rem;
+      padding: 0.6rem;
+      border: none;
+      border-radius: 6px;
+      background: #4f46e5;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover { background: #4338ca; }
+    .msg { margin-top: 1rem; text-align:center; }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <h2>Login to Mule‑Hunt</h2>
+    <form id="loginForm">
+      <label for="login_username">Username</label>
+      <input type="text" id="login_username" name="username" required />
+      <label for="login_password">Password</label>
+      <input type="password" id="login_password" name="password" required />
+      <button type="submit">Login</button>
+    </form>
+    <hr style="margin:1rem 0; border-color:rgba(255,255,255,0.2);"/>
+    <form id="registerForm">
+      <label for="reg_username">Username</label>
+      <input type="text" id="reg_username" name="username" required />
+      <label for="reg_password">Password</label>
+      <input type="password" id="reg_password" name="password" required />
+      <button type="submit">Create Account</button>
+    </form>
+
+
+    <div class="msg" id="message"></div>
+  </div>
+  <script>
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const msg = document.getElementById('message');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = loginForm.username.value.trim();
+      const password = loginForm.password.value.trim();
+      const body = new URLSearchParams({ username, password });
+      try {
+        const resp = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body,
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+          localStorage.setItem('access_token', data.access_token);
+          msg.textContent = '✅ Logged in! Token saved.';
+        } else {
+          msg.textContent = `❌ ${data.detail || 'Login failed'}`;
+        }
+      } catch (err) {
+        msg.textContent = '❌ Network error';
+      }
+    });
+
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = registerForm.username.value.trim();
+      const password = registerForm.password.value.trim();
+      const body = new URLSearchParams({ username, password });
+      try {
+        const resp = await fetch('/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+          msg.textContent = '✅ Account created! You can now log in.';
+        } else {
+          msg.textContent = `❌ ${data.detail || 'Registration failed'}`;
+        }
+      } catch (err) {
+        msg.textContent = '❌ Network error';
+      }
+    });
+  </script>
+</body>
+</html>
