@@ -9,9 +9,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
+
 import numpy as np
 
-from .heuristics import HeuristicEngine, HeuristicRiskResult, RuleViolation
+from .heuristics import HeuristicEngine, RuleViolation
 
 
 @dataclass

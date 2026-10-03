@@ -10,9 +10,7 @@ Serves:
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
@@ -25,10 +23,9 @@ from risklens import __version__
 from risklens.core.engine import HybridRiskEngine
 from risklens.core.models import build_model
 from risklens.database.adapter import DatabaseAdapter
+
 from .schemas import (
     AccountRiskSummary,
-    AskQueryRequest,
-    BatchRiskRequest,
     IngestTransactionRequest,
     RuleViolationItem,
     SensitivityConfig,
@@ -43,8 +40,8 @@ FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 def create_risklens_app(
     checkpoint_dir: Path,
     dataset_path: Path,
-    db_adapter: Optional[DatabaseAdapter] = None,
-    frontend_dir: Optional[Path] = None,
+    db_adapter: DatabaseAdapter | None = None,
+    frontend_dir: Path | None = None,
 ) -> FastAPI:
     if frontend_dir is None:
         frontend_dir = FRONTEND_DIR
@@ -217,8 +214,8 @@ def create_risklens_app(
         )
         return current_config
 
-    @app.get("/api/top", response_model=List[AccountRiskSummary])
-    def top_accounts(k: int = Query(50, ge=5, le=500)) -> List[AccountRiskSummary]:
+    @app.get("/api/top", response_model=list[AccountRiskSummary])
+    def top_accounts(k: int = Query(50, ge=5, le=500)) -> list[AccountRiskSummary]:
         results = []
         for idx in current_order[:k]:
             res = assessments_cache[idx]

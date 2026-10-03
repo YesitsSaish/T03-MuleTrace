@@ -1,17 +1,17 @@
 """Core module exports for RiskLens."""
 
-from .models import GATv2, GCN, GraphSAGE, build_model
-from .heuristics import HeuristicEngine, HeuristicRiskResult, RuleViolation
 from .engine import HybridRiskAssessment, HybridRiskEngine
+from .heuristics import HeuristicEngine, HeuristicRiskResult, RuleViolation
+from .models import GCN, GATv2, GraphSAGE, build_model
 
 __all__ = [
     "GCN",
-    "GraphSAGE",
     "GATv2",
-    "build_model",
+    "GraphSAGE",
     "HeuristicEngine",
     "HeuristicRiskResult",
-    "RuleViolation",
     "HybridRiskAssessment",
     "HybridRiskEngine",
+    "RuleViolation",
+    "build_model",
 ]
